@@ -9,6 +9,8 @@ import Login from './pages/Login';
 // ✅ Lazy-loaded pages (heavy)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const FamilyEditor = lazy(() => import('./pages/FamilyEditor'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const ProgramsManagement = lazy(() => import('./pages/ProgramsManagement'));
 
 function FullPageLoader() {
   return (
@@ -60,6 +62,24 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <FamilyEditor />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UserManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/programs"
+              element={
+                <ProtectedRoute>
+                  <ProgramsManagement />
                 </ProtectedRoute>
               }
             />

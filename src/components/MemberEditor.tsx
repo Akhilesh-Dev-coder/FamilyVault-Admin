@@ -37,18 +37,34 @@ const generateNextId = (existingIds: string[]): string => {
   return (maxId + 1).toString();
 };
 
-export default function MemberEditor({ 
-  member, 
+// 🌈 Depth Colors (High Contrast)
+const DEPTH_COLORS = [
+  "border-blue-500",    // Level 0: Standard Blue
+  "border-yellow-500",  // Level 1: Bright Yellow (Contrast)
+  "border-red-500",     // Level 2: Strong Red
+  "border-green-500",   // Level 3: Nature Green
+  "border-purple-500",  // Level 4: Royal Purple
+  "border-orange-500",  // Level 5: Bright Orange
+  "border-pink-500",    // Level 6: Vibrant Pink
+  "border-cyan-500",    // Level 7: Electric Cyan
+  "border-lime-500",    // Level 8: Acid Lime
+  "border-indigo-500",  // Level 9: Deep Indigo
+];
+
+export default function MemberEditor({
+  member,
   onUpdate,
   allMemberIds,
   onIdsUpdate,
-  onDelete
-}: { 
-  member: Member; 
+  onDelete,
+  depth = 0 // Default depth
+}: {
+  member: Member;
   onUpdate: (updated: Member) => void;
   allMemberIds: string[];
   onIdsUpdate: (newIds: string[]) => void;
   onDelete: () => void;
+  depth?: number;
 }) {
   // Ensure localMember never has undefined values
   const [localMember, setLocalMember] = useState<Member>(() => ({
@@ -119,7 +135,7 @@ export default function MemberEditor({
       await uploadBytes(imageRef, file);
       const newFilename = `${localMember.id}.jpg`;
       handleChange('image', newFilename);
-      
+
       const downloadURL = await getDownloadURL(imageRef);
       setFetchedImageUrl(downloadURL);
     } catch (error: any) {
@@ -176,8 +192,11 @@ export default function MemberEditor({
 
   const displayImageUrl = imagePreview || fetchedImageUrl;
 
+  // Calculate border color based on depth
+  const borderColorClass = DEPTH_COLORS[depth % DEPTH_COLORS.length];
+
   return (
-    <div className="border-l-4 border-blue-500 pl-4 mb-6">
+    <div className={`border-l-4 ${borderColorClass} pl-4 mb-6`}>
       {/* Member Info Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <input
@@ -221,7 +240,7 @@ export default function MemberEditor({
       {/* Image Upload */}
       <div className="mb-4">
         <label className="block mb-2 text-sm font-medium text-gray-300">Profile Photo</label>
-        
+
         {displayImageUrl ? (
           <div className="relative inline-block">
             <img
@@ -278,7 +297,7 @@ export default function MemberEditor({
           <FiPlus size={14} />
           Add Child
         </button>
-        
+
         {!localMember.spouseObj ? (
           <button
             onClick={() => setAddingSpouse(true)}
@@ -380,6 +399,7 @@ export default function MemberEditor({
             onDelete={() => {
               handleChange('spouseObj', null);
             }}
+            depth={depth + 1}
           />
         </div>
       )}
@@ -405,6 +425,7 @@ export default function MemberEditor({
                   const newChildren = localMember.children!.filter((_, i) => i !== index);
                   handleChange('children', newChildren.length > 0 ? newChildren : null);
                 }}
+                depth={depth + 1}
               />
             </div>
           ))}
