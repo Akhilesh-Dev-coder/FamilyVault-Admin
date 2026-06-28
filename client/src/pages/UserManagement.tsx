@@ -3,12 +3,17 @@ import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'firebase
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiArrowLeft, FiUserX, FiTrash2, FiCheckCircle, FiAlertCircle, FiEdit2, FiSave, FiX } from 'react-icons/fi';
+import { FiSearch, FiArrowLeft, FiUserX, FiTrash2, FiCheckCircle, FiAlertCircle, FiEdit2, FiSave, FiX, FiKey } from 'react-icons/fi';
+import { hashPassword } from '../utils/hashUtils';
 
 type User = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  loginMethod?: string;
+  passwordHash?: string;
+  mustChangePassword?: boolean;
   role?: string;
   suspended?: boolean;
 };
@@ -21,7 +26,43 @@ export default function UserManagement() {
   const [error, setError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({ name: '', role: 'user' });
+  const [resettingUser, setResettingUser] = useState<User | null>(null);
+  const [tempPassword, setTempPassword] = useState('');
+  const [resetConfirming, setResetConfirming] = useState(false);
   const navigate = useNavigate();
+
+  const openResetPasswordModal = (user: User) => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let generatedTemp = "FV-";
+    for (let i = 0; i < 6; i++) {
+      generatedTemp += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setTempPassword(generatedTemp);
+    setResettingUser(user);
+  };
+
+  const handleConfirmReset = async () => {
+    if (!resettingUser) return;
+    
+    setResetConfirming(true);
+    try {
+      const userRef = doc(db, 'Users', resettingUser.id);
+      const hashedTemp = hashPassword(tempPassword);
+      
+      await updateDoc(userRef, {
+        passwordHash: hashedTemp,
+        mustChangePassword: true
+      });
+      
+      alert(`Password for ${resettingUser.name} has been reset successfully. Temporary password is: ${tempPassword}`);
+      setResettingUser(null);
+    } catch (error: any) {
+      console.error("Error resetting password:", error);
+      alert("Failed to reset password: " + error.message);
+    } finally {
+      setResetConfirming(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -96,7 +137,8 @@ export default function UserManagement() {
       setFilteredUsers(
         users.filter(u =>
           (u.name?.toLowerCase() || '').includes(query) ||
-          (u.email?.toLowerCase() || '').includes(query)
+          (u.email?.toLowerCase() || '').includes(query) ||
+          (u.phone || '').includes(query)
         )
       );
     }
@@ -246,7 +288,16 @@ export default function UserManagement() {
                   {filteredUsers.map(user => (
                     <tr key={user.id} className="hover:bg-gray-750 transition">
                       <td className="p-4 font-medium">{user.name || 'N/A'}</td>
-                      <td className="p-4 text-gray-400">{user.email || 'N/A'}</td>
+                      <td className="p-4 text-gray-400">
+                        {user.phone ? (
+                          <span className="flex flex-col text-left">
+                            <span className="font-semibold text-blue-400">{user.phone}</span>
+                            <span className="text-xs text-slate-500">Phone User</span>
+                          </span>
+                        ) : (
+                          user.email || 'N/A'
+                        )}
+                      </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${user.role === 'admin'
                           ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
@@ -267,17 +318,26 @@ export default function UserManagement() {
                         )}
                       </td>
                       <td className="p-4 text-right space-x-2">
+                        {user.phone && (
+                          <button
+                            onClick={() => openResetPasswordModal(user)}
+                            title="Reset Password"
+                            className="p-2 bg-amber-600/20 text-amber-400 rounded-lg hover:bg-amber-600/30 transition inline-flex items-center"
+                          >
+                            <FiKey />
+                          </button>
+                        )}
                         <button
                           onClick={() => openEditModal(user)}
                           title="Edit User"
-                          className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition"
+                          className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition inline-flex items-center"
                         >
                           <FiEdit2 />
                         </button>
                         <button
                           onClick={() => handleSuspend(user.id, user.suspended)}
                           title={user.suspended ? "Activate User" : "Suspend User"}
-                          className={`p-2 rounded-lg transition ${user.suspended
+                          className={`p-2 rounded-lg transition inline-flex items-center ${user.suspended
                             ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
                             : 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30'
                             }`}
@@ -287,7 +347,7 @@ export default function UserManagement() {
                         <button
                           onClick={() => handleDelete(user.id)}
                           title="Delete User"
-                          className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition"
+                          className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition inline-flex items-center"
                         >
                           <FiTrash2 />
                         </button>
@@ -302,10 +362,16 @@ export default function UserManagement() {
             <div className="block sm:hidden space-y-4">
               {filteredUsers.map(user => (
                 <div key={user.id} className="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-md">
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start mb-3 text-left">
                     <div>
                       <h3 className="font-bold text-lg text-white">{user.name || 'N/A'}</h3>
-                      <p className="text-sm text-gray-400">{user.email || 'N/A'}</p>
+                      <p className="text-sm text-gray-400">
+                        {user.phone ? (
+                          <span className="text-blue-400 font-semibold">{user.phone} (Phone)</span>
+                        ) : (
+                          user.email || 'N/A'
+                        )}
+                      </p>
                     </div>
                     <span className={`px-2 py-1 rounded text-xs font-semibold border ${user.role === 'admin'
                       ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
@@ -329,15 +395,23 @@ export default function UserManagement() {
                     </div>
 
                     <div className="flex gap-2">
+                      {user.phone && (
+                        <button
+                          onClick={() => openResetPasswordModal(user)}
+                          className="p-2 bg-amber-600/20 text-amber-400 rounded-lg hover:bg-amber-600/30 flex items-center"
+                        >
+                          <FiKey />
+                        </button>
+                      )}
                       <button
                         onClick={() => openEditModal(user)}
-                        className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30"
+                        className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 flex items-center"
                       >
                         <FiEdit2 />
                       </button>
                       <button
                         onClick={() => handleSuspend(user.id, user.suspended)}
-                        className={`p-2 rounded-lg ${user.suspended
+                        className={`p-2 rounded-lg flex items-center ${user.suspended
                           ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
                           : 'bg-yellow-600/20 text-yellow-400 hover:bg-yellow-600/30'
                           }`}
@@ -346,7 +420,7 @@ export default function UserManagement() {
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}
-                        className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30"
+                        className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 flex items-center"
                       >
                         <FiTrash2 />
                       </button>
@@ -411,6 +485,70 @@ export default function UserManagement() {
                   >
                     <FiSave />
                     Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Reset Password Modal */}
+      {
+        resettingUser && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 text-left">
+            <div className="bg-gray-800 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
+              <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-amber-400">
+                  <FiKey /> Reset Password
+                </h2>
+                <button
+                  onClick={() => setResettingUser(null)}
+                  className="text-gray-400 hover:text-white transition"
+                >
+                  <FiX className="text-xl" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-300">
+                  Resetting password for <span className="font-bold text-white">{resettingUser.name}</span> ({resettingUser.phone}).
+                </p>
+
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 space-y-2">
+                  <span className="block text-xs font-semibold text-amber-400 uppercase tracking-wider">Temporary Password</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-2xl font-bold text-white tracking-widest">{tempPassword}</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(tempPassword);
+                        alert("Copied to clipboard!");
+                      }}
+                      className="text-xs bg-amber-500/20 text-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-500/30 transition font-bold"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Upon saving, this temporary password will be stored. The user will be required to change this temporary password immediately after they log in.
+                </p>
+
+                <div className="pt-4 flex gap-3 justify-end">
+                  <button
+                    onClick={() => setResettingUser(null)}
+                    className="px-4 py-2 text-gray-400 hover:bg-gray-700 rounded-lg transition"
+                    disabled={resetConfirming}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmReset}
+                    className="px-4 py-2 bg-amber-500 text-gray-900 font-semibold rounded-lg hover:bg-amber-400 transition flex items-center gap-2"
+                    disabled={resetConfirming}
+                  >
+                    {resetConfirming ? "Saving..." : "Confirm Reset"}
                   </button>
                 </div>
               </div>
