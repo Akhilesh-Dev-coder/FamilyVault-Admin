@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, onSnapshot, query, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,8 @@ type User = {
   mustChangePassword?: boolean;
   role?: string;
   suspended?: boolean;
+  resetRequested?: boolean;
+  resetRequestedAt?: any;
 };
 
 export default function UserManagement() {
@@ -29,6 +31,7 @@ export default function UserManagement() {
   const [resettingUser, setResettingUser] = useState<User | null>(null);
   const [tempPassword, setTempPassword] = useState('');
   const [resetConfirming, setResetConfirming] = useState(false);
+  const [resetRequests, setResetRequests] = useState<User[]>([]);
   const navigate = useNavigate();
 
   const openResetPasswordModal = (user: User) => {
@@ -51,7 +54,9 @@ export default function UserManagement() {
       
       await updateDoc(userRef, {
         passwordHash: hashedTemp,
-        mustChangePassword: true
+        mustChangePassword: true,
+        resetRequested: false,
+        resetRequestedAt: null
       });
       
       alert(`Password for ${resettingUser.name} has been reset successfully. Temporary password is: ${tempPassword}`);
@@ -63,6 +68,51 @@ export default function UserManagement() {
       setResetConfirming(false);
     }
   };
+
+  const handleResolveRequest = async (userId: string) => {
+    try {
+      const userRef = doc(db, "Users", userId);
+      await updateDoc(userRef, {
+        resetRequested: false,
+        resetRequestedAt: null
+      });
+    } catch (err: any) {
+      console.error("Error resolving request:", err);
+      alert("Failed to resolve request: " + err.message);
+    }
+  };
+
+  const handleResetFromRequest = (user: User) => {
+    openResetPasswordModal(user);
+  };
+
+  useEffect(() => {
+    // Real-time listener for pending password reset requests inside the Users collection
+    const q = query(
+      collection(db, "Users"),
+      where("resetRequested", "==", true)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const requestsData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as User[];
+
+      // Sort by resetRequestedAt descending locally
+      requestsData.sort((a, b) => {
+        const timeA = a.resetRequestedAt?.seconds || 0;
+        const timeB = b.resetRequestedAt?.seconds || 0;
+        return timeB - timeA;
+      });
+
+      setResetRequests(requestsData);
+    }, (err) => {
+      console.error("Error subscribing to reset requests:", err);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -252,6 +302,52 @@ export default function UserManagement() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        {/* Reset Requests Section */}
+        {!loading && resetRequests.length > 0 && (
+          <div className="mb-8 bg-amber-500/10 border border-amber-500/20 rounded-xl p-6 shadow-lg">
+            <h2 className="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+              <FiKey /> Pending Password Reset Requests ({resetRequests.length})
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {resetRequests.map((req) => {
+                return (
+                  <div key={req.id} className="bg-gray-800 border border-gray-700 rounded-xl p-4 flex flex-col justify-between gap-4 text-left">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-semibold text-white tracking-wide">
+                          {req.phone || 'No Phone'}
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          {req.resetRequestedAt?.seconds 
+                            ? new Date(req.resetRequestedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : 'Just now'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+                        Matches user: <span className="font-semibold text-amber-300">{req.name || 'N/A'}</span>
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-700/50">
+                      <button
+                        onClick={() => handleResolveRequest(req.id)}
+                        className="px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-700 hover:text-white rounded-lg transition"
+                      >
+                        Dismiss
+                      </button>
+                      <button
+                        onClick={() => handleResetFromRequest(req)}
+                        className="px-3 py-1.5 text-xs bg-amber-500 text-gray-900 font-bold hover:bg-amber-400 rounded-lg transition flex items-center gap-1"
+                      >
+                        <FiKey className="text-[10px]" /> Reset Password
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-20 text-gray-400">Loading users...</div>
         ) : error ? (
