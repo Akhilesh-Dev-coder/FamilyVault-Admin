@@ -321,9 +321,14 @@ export default function UserManagement() {
                         <span className="text-sm font-semibold text-white tracking-wide">
                           {req.phone || 'No Phone'}
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">
+                        <span className="text-[10px] text-gray-400 font-mono text-right">
                           {req.resetRequestedAt?.seconds 
-                            ? new Date(req.resetRequestedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            ? new Date(req.resetRequestedAt.seconds * 1000).toLocaleString([], {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
                             : 'Just now'}
                         </span>
                       </div>
