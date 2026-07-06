@@ -5,6 +5,7 @@ import { db, auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiArrowLeft, FiUserX, FiTrash2, FiCheckCircle, FiAlertCircle, FiEdit2, FiSave, FiX, FiKey } from 'react-icons/fi';
 import { hashPassword } from '../utils/hashUtils';
+import NotificationBell from '../components/NotificationBell';
 
 type User = {
   id: string;
@@ -286,17 +287,20 @@ export default function UserManagement() {
             <button onClick={runDebug} className="text-xs bg-gray-700 px-2 py-1 rounded border border-gray-600">Debug</button>
           </div>
 
-          <div className="relative w-full sm:w-72">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-700 rounded-lg
-                         text-white placeholder-gray-400
-                         focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="relative w-full sm:w-72">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 rounded-lg
+                           text-white placeholder-gray-400
+                           focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <NotificationBell />
           </div>
         </div>
       </header>

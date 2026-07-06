@@ -5,6 +5,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth, storage } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiArrowLeft, FiPlus, FiTrash2, FiEdit2, FiSave, FiX, FiCalendar, FiMapPin, FiClock, FiEye, FiEyeOff, FiUpload } from 'react-icons/fi';
+import NotificationBell from '../components/NotificationBell';
 
 type ProgramType = 'Wedding' | 'Birthday' | 'Anniversary' | 'Get Together' | 'Meeting' | 'Other';
 type ProgramStatus = 'Upcoming' | 'Completed' | 'Cancelled';
@@ -237,7 +238,7 @@ export default function ProgramsManagement() {
                         <h1 className="text-xl sm:text-2xl font-bold">Programs Management</h1>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
                         <div className="relative w-full sm:w-64">
                             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                             <input
@@ -252,11 +253,12 @@ export default function ProgramsManagement() {
                         </div>
                         <button
                             onClick={() => handleOpenModal()}
-                            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-500 transition flex items-center justify-center gap-2"
+                            className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-500 transition flex items-center justify-center gap-2 w-full sm:w-auto"
                         >
                             <FiPlus />
                             Create Program
                         </button>
+                        <NotificationBell />
                     </div>
                 </div>
             </header>

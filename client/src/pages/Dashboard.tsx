@@ -4,6 +4,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiUser, FiUsers, FiHome, FiCalendar, FiActivity, FiClock } from 'react-icons/fi';
+import NotificationBell from '../components/NotificationBell';
 
 // Recursive type for family tree structure
 type FamilyMember = {
@@ -142,21 +143,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Navigation Pills */}
-            <nav className="flex items-center bg-slate-900/50 p-1 rounded-full border border-white/5 overflow-x-auto max-w-full">
-              <button
-                onClick={() => navigate('/programs')}
-                className="px-4 py-1.5 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-full transition-all flex items-center gap-2 whitespace-nowrap"
-              >
-                <FiCalendar size={14} /> Programs
-              </button>
-              <button
-                onClick={() => navigate('/users')}
-                className="px-4 py-1.5 text-sm font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-300 rounded-full transition-all flex items-center gap-2 whitespace-nowrap"
-              >
-                <FiUsers size={14} /> Users
-              </button>
-            </nav>
+            {/* Navigation & Actions */}
+            <div className="flex items-center gap-4">
+              {/* Navigation Pills */}
+              <nav className="flex items-center bg-slate-900/50 p-1 rounded-full border border-white/5 overflow-x-auto max-w-full">
+                <button
+                  onClick={() => navigate('/programs')}
+                  className="px-4 py-1.5 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 hover:text-emerald-300 rounded-full transition-all flex items-center gap-2 whitespace-nowrap"
+                >
+                  <FiCalendar size={14} /> Programs
+                </button>
+                <button
+                  onClick={() => navigate('/users')}
+                  className="px-4 py-1.5 text-sm font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-300 rounded-full transition-all flex items-center gap-2 whitespace-nowrap"
+                >
+                  <FiUsers size={14} /> Users
+                </button>
+              </nav>
+              <NotificationBell />
+            </div>
           </div>
         </header>
 

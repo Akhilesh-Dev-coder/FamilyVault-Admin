@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { useParams, useNavigate } from 'react-router-dom';
 import MemberEditor from '../components/MemberEditor';
 import { FiArrowLeft, FiSave, FiX } from 'react-icons/fi';
+import NotificationBell from '../components/NotificationBell';
 
 // 🔧 Align with Member type from MemberEditor.tsx
 type FamilyMember = {
@@ -99,7 +100,7 @@ export default function FamilyEditor() {
             </button>
             <h1 className="text-2xl font-bold">Edit {family.name}</h1>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard')}
               className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 flex items-center gap-2"
@@ -115,6 +116,7 @@ export default function FamilyEditor() {
               <FiSave className='hidden sm:flex'/>
               {saving ? 'Saving...' : 'Save'}
             </button>
+            <NotificationBell />
           </div>
         </div>
       </header>
